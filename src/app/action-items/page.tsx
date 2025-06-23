@@ -77,7 +77,7 @@ function ActionItemsPageLoading() {
 // Main component wrapped in Suspense
 function ActionItemsContent() {
   const searchParams = useSearchParams();
-  
+
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
@@ -112,7 +112,7 @@ function ActionItemsContent() {
 
   useEffect(() => {
     fetchData();
-    
+
     // Check for URL parameters to auto-populate form
     const shouldAdd = searchParams.get('add');
     if (shouldAdd === 'true') {
@@ -121,7 +121,7 @@ function ActionItemsContent() {
       const sourceType = searchParams.get('source_type') || 'action_item';
       const projectId = searchParams.get('project_id') || '';
       const createdBy = searchParams.get('created_by') || 'Thomas Gould';
-      
+
       // Update form data with URL parameters
       setFormData({
         title,
@@ -134,10 +134,10 @@ function ActionItemsContent() {
         due_date: '',
         created_by: createdBy
       });
-      
+
       // Show the add form
       setShowAddForm(true);
-      
+
       // Clean up URL parameters after auto-populating
       if (window.history.replaceState) {
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -223,13 +223,13 @@ function ActionItemsContent() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       // Cache the notes
       setItemNotesCache(prev => ({
         ...prev,
         [actionItemId]: data || []
       }));
-      
+
       return data || [];
     } catch (error: any) {
       console.error('Error fetching notes:', error);
@@ -336,10 +336,10 @@ function ActionItemsContent() {
     } catch (error: any) {
       console.error('Error saving action item:', error);
       console.error('Full error object:', JSON.stringify(error, null, 2));
-      
+
       // Better error handling
       let errorMessage = 'Failed to save action item';
-      
+
       if (error?.message) {
         errorMessage = error.message;
       } else if (error?.details) {
@@ -354,7 +354,7 @@ function ActionItemsContent() {
         // If it's still an empty object or unexpected structure
         errorMessage = `Unexpected error: ${JSON.stringify(error)}`;
       }
-      
+
       setError(errorMessage);
     }
   };
@@ -438,7 +438,7 @@ function ActionItemsContent() {
 
   const toggleItemExpansion = async (actionItemId: string) => {
     const newExpandedItems = new Set(expandedItems);
-    
+
     if (expandedItems.has(actionItemId)) {
       // Collapse
       newExpandedItems.delete(actionItemId);
@@ -449,7 +449,7 @@ function ActionItemsContent() {
         await fetchNotesForItem(actionItemId);
       }
     }
-    
+
     setExpandedItems(newExpandedItems);
   };
 
@@ -496,8 +496,8 @@ function ActionItemsContent() {
 
   const filteredItems = actionItems.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (item.assigned_to && item.assigned_to.toLowerCase().includes(searchTerm.toLowerCase()));
+      (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.assigned_to && item.assigned_to.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = !filterStatus || item.status === filterStatus;
     const matchesPriority = !filterPriority || item.priority === filterPriority;
     const matchesProject = !filterProject || item.project_id === filterProject;
@@ -690,7 +690,7 @@ function ActionItemsContent() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredItems.map((item) => (
                     <React.Fragment key={item.id}>
-                      <tr 
+                      <tr
                         className="hover:bg-gray-50 cursor-pointer"
                         onClick={() => toggleItemExpansion(item.id)}
                       >
@@ -763,7 +763,7 @@ function ActionItemsContent() {
                           </div>
                         </td>
                       </tr>
-                      
+
                       {/* Expandable Notes Section */}
                       {expandedItems.has(item.id) && (
                         <tr>
@@ -773,7 +773,7 @@ function ActionItemsContent() {
                                 <MessageSquare className="w-4 h-4 mr-2" />
                                 Notes ({itemNotesCache[item.id]?.length || 0})
                               </h4>
-                              
+
                               {itemNotesCache[item.id]?.length > 0 ? (
                                 <div className="space-y-3 max-h-60 overflow-y-auto">
                                   {itemNotesCache[item.id].map((note) => (
@@ -789,9 +789,9 @@ function ActionItemsContent() {
                               ) : (
                                 <div className="text-sm text-gray-500 italic">No notes yet</div>
                               )}
-                              
+
                               <div className="mt-3 text-xs text-gray-400">
-                                Created: {formatTimestamp(item.created_at || '')} | 
+                                Created: {formatTimestamp(item.created_at || '')} |
                                 Last Updated: {formatTimestamp(item.updated_at || '')}
                               </div>
                             </div>
@@ -1033,7 +1033,7 @@ interface AutocompleteProps {
 function AssignedToAutocomplete({ value, onChange, crewMembers, subcontractors, placeholder }: AutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
-  
+
   useEffect(() => {
     setInputValue(value);
   }, [value]);
@@ -1041,7 +1041,7 @@ function AssignedToAutocomplete({ value, onChange, crewMembers, subcontractors, 
   // Combine crew members and subcontractors into assignee options
   const assigneeOptions = React.useMemo(() => {
     const options: Array<{ id: string; name: string; type: 'crew' | 'subcontractor'; details?: string }> = [];
-    
+
     // Add crew members
     crewMembers.forEach(member => {
       options.push({
@@ -1051,7 +1051,7 @@ function AssignedToAutocomplete({ value, onChange, crewMembers, subcontractors, 
         details: member.role ? `(${member.role})` : ''
       });
     });
-    
+
     // Add subcontractors
     subcontractors.forEach(sub => {
       const contactPerson = sub.contact_person ? ` - ${sub.contact_person}` : '';
@@ -1062,7 +1062,7 @@ function AssignedToAutocomplete({ value, onChange, crewMembers, subcontractors, 
         details: sub.specialty ? `(${sub.specialty}${contactPerson})` : contactPerson
       });
     });
-    
+
     return options;
   }, [crewMembers, subcontractors]);
 
@@ -1105,7 +1105,7 @@ function AssignedToAutocomplete({ value, onChange, crewMembers, subcontractors, 
         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         placeholder={placeholder || "Type to search crew/contractors or enter custom name"}
       />
-      
+
       {isOpen && (filteredOptions.length > 0 || inputValue.trim()) && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {filteredOptions.length > 0 && (
@@ -1122,11 +1122,10 @@ function AssignedToAutocomplete({ value, onChange, crewMembers, subcontractors, 
                       <span className="text-sm text-gray-500 ml-2">{option.details}</span>
                     )}
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    option.type === 'crew' 
-                      ? 'bg-blue-100 text-blue-700' 
+                  <span className={`text-xs px-2 py-1 rounded ${option.type === 'crew'
+                      ? 'bg-blue-100 text-blue-700'
                       : 'bg-green-100 text-green-700'
-                  }`}>
+                    }`}>
                     {option.type === 'crew' ? 'Crew' : 'Contractor'}
                   </span>
                 </div>
@@ -1148,7 +1147,7 @@ function AssignedToAutocomplete({ value, onChange, crewMembers, subcontractors, 
               )}
             </>
           )}
-          
+
           {filteredOptions.length === 0 && inputValue.trim() && (
             <div className="px-3 py-2">
               <div

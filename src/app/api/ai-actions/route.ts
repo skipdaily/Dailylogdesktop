@@ -29,7 +29,7 @@ async function updateActionItemStatus(actionItemId: string, status: string, upda
     if (error) throw error;
 
     // Add a note about the status change
-    const noteText = note 
+    const noteText = note
       ? `Status changed to ${status}. ${note}`
       : `Status changed to ${status}`;
 
@@ -84,7 +84,7 @@ async function updateActionItemPriority(actionItemId: string, priority: string, 
 
     const { data, error } = await supabase
       .from('action_items')
-      .update({ 
+      .update({
         priority,
         updated_at: new Date().toISOString()
       })
@@ -114,7 +114,7 @@ async function assignActionItem(actionItemId: string, assignedTo: string, update
   try {
     const { data, error } = await supabase
       .from('action_items')
-      .update({ 
+      .update({
         assigned_to: assignedTo,
         updated_at: new Date().toISOString()
       })
@@ -144,7 +144,7 @@ async function updateActionItemDueDate(actionItemId: string, dueDate: string, up
   try {
     const { data, error } = await supabase
       .from('action_items')
-      .update({ 
+      .update({
         due_date: dueDate,
         updated_at: new Date().toISOString()
       })
@@ -203,34 +203,34 @@ async function createNewActionItem(title: string, description: string, projectId
 async function executeAIAction(action: any, userId: string) {
   const { type, data } = action;
   const updatedBy = userId || 'AI Assistant';
-  
+
   switch (type) {
     case 'update_action_item_status':
       return await updateActionItemStatus(data.actionItemId, data.status, updatedBy, data.note);
-    
+
     case 'add_action_item_note':
       return await addActionItemNote(data.actionItemId, data.note, updatedBy);
-    
+
     case 'update_action_item_priority':
       return await updateActionItemPriority(data.actionItemId, data.priority, updatedBy);
-    
+
     case 'assign_action_item':
       return await assignActionItem(data.actionItemId, data.assignedTo, updatedBy);
-    
+
     case 'update_action_item_due_date':
       return await updateActionItemDueDate(data.actionItemId, data.dueDate, updatedBy);
-    
+
     case 'create_action_item':
       return await createNewActionItem(
-        data.title, 
-        data.description, 
-        data.projectId, 
-        data.priority, 
-        data.assignedTo, 
-        data.dueDate, 
+        data.title,
+        data.description,
+        data.projectId,
+        data.priority,
+        data.assignedTo,
+        data.dueDate,
         updatedBy
       );
-    
+
     default:
       return { success: false, error: `Unknown action type: ${type}` };
   }

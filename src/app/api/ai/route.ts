@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { supabase } from '@/lib/supabaseClient';
 
-// Create OpenAI client with fallback behavior
+// Create OpenAI client with robust error handling
 const createOpenAIClient = () => {
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key') {
+    console.error('OPENAI_API_KEY is not properly configured in environment variables');
+  }
+
   try {
     return new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || 'dummy-key',
+      apiKey: process.env.OPENAI_API_KEY,
+      dangerouslyAllowBrowser: false
     });
   } catch (error) {
     console.error('Error initializing OpenAI client:', error);
