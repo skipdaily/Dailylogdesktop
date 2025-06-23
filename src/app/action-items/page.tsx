@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Plus, Search, Edit2, Trash2, AlertCircle, CheckCircle, Clock, AlertTriangle, FileText, MessageSquare } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -58,7 +58,24 @@ interface Subcontractor {
   is_active?: boolean;
 }
 
-export default function ActionItemsPage() {
+// Loading fallback component
+function ActionItemsPageLoading() {
+  return (
+    <div className="max-w-6xl mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Action Items</h1>
+      </div>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="text-center py-8">
+          <div className="text-gray-500">Loading action items...</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main component wrapped in Suspense
+function ActionItemsContent() {
   const searchParams = useSearchParams();
   
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
@@ -1150,5 +1167,14 @@ function AssignedToAutocomplete({ value, onChange, crewMembers, subcontractors, 
         </div>
       )}
     </div>
+  );
+}
+
+// Export the main component wrapped in Suspense
+export default function ActionItemsPage() {
+  return (
+    <Suspense fallback={<ActionItemsPageLoading />}>
+      <ActionItemsContent />
+    </Suspense>
   );
 }
