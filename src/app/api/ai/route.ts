@@ -2,9 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { supabase } from '@/lib/supabaseClient';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Create OpenAI client with fallback behavior
+const createOpenAIClient = () => {
+  try {
+    return new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || 'dummy-key',
+    });
+  } catch (error) {
+    console.error('Error initializing OpenAI client:', error);
+    // Return a dummy client that will fail gracefully when used
+    return {
+      chat: {
+        completions: {
+          create: async () => {
+            throw new Error('OpenAI API key not properly configured');
+          }
+        }
+      }
+    } as unknown as OpenAI;
+  }
+};
+
+const openai = createOpenAIClient();
 
 async function fetchConstructionData() {
   try {
@@ -128,7 +147,7 @@ function createDataContext(data: any) {
     inProgressActionItems: data.actionItems.filter((item: any) => item.status === 'in_progress').length,
     completedActionItems: data.actionItems.filter((item: any) => item.status === 'completed').length,
     urgentActionItems: data.actionItems.filter((item: any) => item.priority === 'urgent').length,
-    overdueActionItems: data.actionItems.filter((item: any) => 
+    overdueActionItems: data.actionItems.filter((item: any) =>
       item.due_date && new Date(item.due_date) < new Date() && item.status !== 'completed'
     ).length
   };
@@ -171,7 +190,7 @@ Date: ${log.date}
 Project: ${log.projects?.name || 'No Project'}
 Superintendent: ${log.superintendent_name}
 `;
-      
+
       if (log.log_sections?.length > 0) {
         context += `Sections:\n`;
         log.log_sections.forEach((section: any) => {
@@ -245,14 +264,14 @@ Superintendent: ${log.superintendent_name}
   // Add action items information with comprehensive timeline analysis
   if (data.actionItemsWithDetails.length > 0) {
     context += `CURRENT ACTION ITEMS WITH COMPLETE HISTORY:\n`;
-    
+
     // Create a comprehensive analysis of action items with their full timeline
     const enrichedItems = data.actionItemsWithDetails.map((item: any) => {
       // Sort notes chronologically to understand progression
-      const sortedNotes = (item.action_item_notes || []).sort((a: any, b: any) => 
+      const sortedNotes = (item.action_item_notes || []).sort((a: any, b: any) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
-      
+
       // Analyze the timeline and current status
       const timeline = {
         created: item.created_at,
@@ -264,15 +283,15 @@ Superintendent: ${log.superintendent_name}
         daysSinceCreated: Math.floor((Date.now() - new Date(item.created_at).getTime()) / (1000 * 60 * 60 * 24)),
         daysSinceLastUpdate: Math.floor((Date.now() - new Date(item.updated_at).getTime()) / (1000 * 60 * 60 * 24))
       };
-      
+
       return { ...item, timeline, sortedNotes };
     });
-    
+
     // Group by status and analyze
     const openItems = enrichedItems.filter((item: any) => item.status === 'open');
     const inProgressItems = enrichedItems.filter((item: any) => item.status === 'in_progress');
     const completedItems = enrichedItems.filter((item: any) => item.status === 'completed');
-    const overdueItems = enrichedItems.filter((item: any) => 
+    const overdueItems = enrichedItems.filter((item: any) =>
       item.due_date && new Date(item.due_date) < new Date() && item.status !== 'completed'
     );
 
@@ -286,11 +305,11 @@ Superintendent: ${log.superintendent_name}
         context += `  Status: ${item.status}\n`;
         context += `  Created: ${item.timeline.daysSinceCreated} days ago\n`;
         context += `  Last Updated: ${item.timeline.daysSinceLastUpdate} days ago\n`;
-        
+
         if (item.description) {
           context += `  Description: ${item.description}\n`;
         }
-        
+
         if (item.sortedNotes && item.sortedNotes.length > 0) {
           context += `  COMPLETE NOTE HISTORY (${item.sortedNotes.length} notes):\n`;
           item.sortedNotes.forEach((note: any, index: number) => {
@@ -317,11 +336,11 @@ Superintendent: ${log.superintendent_name}
         context += `  Assigned: ${item.assigned_to || 'Unassigned'}\n`;
         context += `  Age: ${item.timeline.daysSinceCreated} days since creation\n`;
         context += `  Last Activity: ${item.timeline.daysSinceLastUpdate} days ago\n`;
-        
+
         if (item.description) {
           context += `  Description: ${item.description}\n`;
         }
-        
+
         if (item.sortedNotes && item.sortedNotes.length > 0) {
           context += `  PROGRESS NOTES (${item.sortedNotes.length} total):\n`;
           // Show latest 3 notes for open items
@@ -351,7 +370,7 @@ Superintendent: ${log.superintendent_name}
         }
         context += `  Assigned: ${item.assigned_to || 'Unassigned'}\n`;
         context += `  Last Activity: ${item.timeline.daysSinceLastUpdate} days ago\n`;
-        
+
         if (item.sortedNotes && item.sortedNotes.length > 0) {
           context += `  RECENT PROGRESS:\n`;
           // Show latest 2 notes for in-progress items
@@ -374,7 +393,7 @@ Superintendent: ${log.superintendent_name}
         context += `\n[${item.priority.toUpperCase()}] ${item.title}\n`;
         context += `  Project: ${item.projects?.name || 'No Project'}\n`;
         context += `  Completed: ${completionDate.toLocaleDateString()} (${daysAgo} days ago)\n`;
-        
+
         if (item.sortedNotes && item.sortedNotes.length > 0) {
           const finalNote = item.sortedNotes[item.sortedNotes.length - 1];
           context += `  Final Note: "${finalNote.note}" - ${finalNote.created_by}\n`;
@@ -389,7 +408,7 @@ Superintendent: ${log.superintendent_name}
   // Add comprehensive action item notes analysis for additional context
   if (data.actionItemNotes.length > 0) {
     context += `RECENT ACTION ITEM NOTE ACTIVITY (Last 20 notes):\n`;
-    
+
     // Group notes by action item for better analysis
     const notesByItem = data.actionItemNotes.reduce((acc: any, note: any) => {
       if (!acc[note.action_item_id]) {
@@ -398,13 +417,13 @@ Superintendent: ${log.superintendent_name}
       acc[note.action_item_id].push(note);
       return acc;
     }, {});
-    
+
     // Show recent activity with better context
     data.actionItemNotes.slice(0, 20).forEach((note: any) => {
       const noteDate = new Date(note.created_at);
       const daysAgo = Math.floor((Date.now() - noteDate.getTime()) / (1000 * 60 * 60 * 24));
       const timeAgo = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`;
-      
+
       context += `• [${timeAgo}] ${note.created_by}: "${note.note}"\n`;
       context += `  Action Item ID: ${note.action_item_id}\n`;
       context += `  Timestamp: ${noteDate.toLocaleString()}\n`;
@@ -437,8 +456,8 @@ async function findOrCreateConversation(sessionId: string, userId: string, first
     }
 
     // Create new conversation
-    const title = firstMessage.length > 50 
-      ? firstMessage.substring(0, 50) + '...' 
+    const title = firstMessage.length > 50
+      ? firstMessage.substring(0, 50) + '...'
       : firstMessage;
 
     const { data: newConversation, error } = await supabase
@@ -536,22 +555,22 @@ async function executeAction(actionType: string, actionData: any) {
     switch (actionType) {
       case 'update_action_item_status':
         return await updateActionItemStatus(actionData.id, actionData.status, actionData.note, actionData.user);
-      
+
       case 'add_action_item_note':
         return await addActionItemNote(actionData.id, actionData.note, actionData.user);
-      
+
       case 'create_action_item':
         return await createActionItem(actionData);
-      
+
       case 'update_action_item_priority':
         return await updateActionItemPriority(actionData.id, actionData.priority, actionData.user);
-      
+
       case 'assign_action_item':
         return await assignActionItem(actionData.id, actionData.assignedTo, actionData.user);
-      
+
       case 'update_action_item_due_date':
         return await updateActionItemDueDate(actionData.id, actionData.dueDate, actionData.user);
-      
+
       default:
         throw new Error(`Unknown action type: ${actionType}`);
     }
@@ -685,7 +704,7 @@ async function updateActionItemDueDate(id: string, dueDate: string, user?: strin
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  
+
   try {
     const { message, sessionId, userId, conversationHistory, action } = await request.json();
 
@@ -851,7 +870,7 @@ Be conversational, practical, and focus on actionable insights for construction 
           role: msg.role === 'assistant' ? 'assistant' : 'user',
           content: msg.content
         }));
-      
+
       messages.push(...historyMessages);
     }
 
@@ -888,17 +907,17 @@ Be conversational, practical, and focus on actionable insights for construction 
       if (actionMatch) {
         const actionJson = JSON.parse(actionMatch[0]);
         const { actionType, actionData } = actionJson.action;
-        
+
         console.log('Executing action:', actionType, actionData);
         actionResult = await executeAction(actionType, actionData);
-        
+
         // Update the response to include action confirmation
-        finalResponse = response.replace(actionMatch[0], '') + 
+        finalResponse = response.replace(actionMatch[0], '') +
           `\n\n✅ **Action Completed**: ${actionResult.message}`;
       }
     } catch (actionError) {
       console.error('Error executing action:', actionError);
-      finalResponse = response + 
+      finalResponse = response +
         `\n\n❌ **Action Failed**: ${actionError instanceof Error ? actionError.message : 'Unknown error occurred'}`;
     }
 
@@ -913,7 +932,7 @@ Be conversational, practical, and focus on actionable insights for construction 
       actionResult: actionResult
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       response: finalResponse,
       conversationId,
       sessionId: sessionId || `session_${Date.now()}`,
@@ -926,16 +945,16 @@ Be conversational, practical, and focus on actionable insights for construction 
 
   } catch (error: any) {
     console.error('Error in AI route:', error);
-    
+
     if (error?.error?.type === 'insufficient_quota') {
-      return NextResponse.json({ 
-        error: 'OpenAI API quota exceeded. Please check your billing.' 
+      return NextResponse.json({
+        error: 'OpenAI API quota exceeded. Please check your billing.'
       }, { status: 429 });
     }
-    
+
     if (error?.status === 401) {
-      return NextResponse.json({ 
-        error: 'Invalid OpenAI API key.' 
+      return NextResponse.json({
+        error: 'Invalid OpenAI API key.'
       }, { status: 401 });
     }
 
